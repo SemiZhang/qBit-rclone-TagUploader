@@ -79,6 +79,9 @@ function rclone_copy(){
     torrent_hash=$2
     torrent_path=$3
     
+	echo ${torrent_name}
+	echo ${torrent_hash}
+	echo ${torrent_path}
     echo "${torrent_name}"  >> ${log_dir}/qb.log
     echo "${torrent_hash}"  >> ${log_dir}/qb.log
     echo "${torrent_path}"  >> ${log_dir}/qb.log
@@ -169,9 +172,6 @@ function doUpload(){
     if [[ ${noLock} == "1" ]] # 厕所门能开
     then
         file_lock # 锁上厕所门
-        echo ${torrent_name}
-        echo ${torrent_hash}
-        echo ${torrent_path}
         echo '开始上传';
         rclone_copy "${torrent_name}" "${torrent_hash}" "${torrent_path}"
     else
