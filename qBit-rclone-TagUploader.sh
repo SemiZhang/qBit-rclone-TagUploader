@@ -5,8 +5,7 @@ qb_username="用户名" # 改：qBit WebUI的登录用户名
 qb_password="密码" # 改：qBit WebUI的登录密码
 qb_web_url="http://localhost:8080" # 改：qBit WebUI的登录地址
 log_dir="${HOME}/log/qBit-rclone-TagUploader" # 改：此脚本的日志保存的路径
-rclone_dest="BG:" # rclone挂载名称；运行rclone config查看name字段即可；格式为"XX:"
-from_dc_tag="/Upload" # 改：上传目录，可为空
+rclone_dest="BG:/Upload" # rclone上传目录；挂载名称参考rclone config中的name字段；格式为"XX:FOLDER"
 rclone_parallel="32" # rclone上传线程 默认4
 
 unfinished_tag="待上传" # 请自行添加此Tag至qBittorrent中
@@ -108,10 +107,10 @@ function rclone_copy(){
     # 执行上传
     if [ ${type} == "file" ]
     then # 这里是rclone上传的方法
-        rclone_copy_cmd=$(rclone -v copy --transfers ${rclone_parallel} --log-file  ${log_dir}/qbauto_copy.log "${torrent_path}" ${rclone_dest}/${from_dc_tag})
+        rclone_copy_cmd=$(rclone -v copy --transfers ${rclone_parallel} --log-file ${log_dir}/qbauto_copy.log "${torrent_path}" ${rclone_dest}/)
     elif [ ${type} == "dir" ]
     then
-		rclone_copy_cmd=$(rclone -v copy --transfers ${rclone_parallel} --log-file ${log_dir}/qbauto_copy.log "${torrent_path}"/ ${rclone_dest}/${from_dc_tag}/"${torrent_name}")
+		rclone_copy_cmd=$(rclone -v copy --transfers ${rclone_parallel} --log-file ${log_dir}/qbauto_copy.log "${torrent_path}"/ ${rclone_dest}/"${torrent_name}"/)
     fi
 
     # tag = 已上传
