@@ -155,18 +155,11 @@ function doUpload(){
 	
     torrent_name=$(echo "${torrentInfo}" | jq ".[$i] | .name" | sed s/\"//g)
     torrent_hash=$(echo "${torrentInfo}" | jq ".[$i] | .hash" | sed s/\"//g)
-    save_path=$(echo "${torrentInfo}" | jq ".[$i] | .save_path" | sed s/\"//g)
+	torrent_path=$(echo "${torrentInfo}" | jq ".[$i] | .content_path" | sed s/\"//g)
     
     IFS=$OLD_IFS
     
     echo "${torrent_name}";
-    
-    if [[ $save_path != /* ]]
-    then
-		save_path="/${save_path}"
-    fi
-    
-    torrent_path="${save_path}${torrent_name}" # 这里就是他的本地实际路径，尝试将这里上传上去
 
     can_go_lock
     if [[ ${noLock} == "1" ]] # 厕所门能开
