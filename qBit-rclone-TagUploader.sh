@@ -186,19 +186,18 @@ function qb_get_status(){
 	qb_login
 	if [ ${qb_v} == "1" ]
 	then
-		completed_torrents_num=$(curl -s "${qb_web_url}/api/v2/torrents/info?filter=completed" --cookie "${cookie}" | jq '.[] | length' | wc -l)
-		echo "任务数：".${completed_torrents_num}
+		torrentInfo=$(curl -s "${qb_web_url}/api/v2/torrents/info?filter=completed&tag=${unfinished_tag}" --cookie "${cookie}")
+		completed_torrents_num=$(echo ${torrentInfo} | jq '.[] | length' | wc -l)
+		echo "待上传标签任务数："${completed_torrents_num}
 		for((i=0;i<${completed_torrents_num};i++));
 		do
-			curtag=$(curl -s "${qb_web_url}/api/v2/torrents/info?filter=completed" --cookie "${cookie}" | jq ".[$i] | .tags" | sed s/\"//g | grep -P -o "${unfinished_tag}")
+			curtag=$(echo ${torrentInfo} | jq ".[$i] | .tags" | sed s/\"//g | grep -P -o "${unfinished_tag}")
 			if [ -z "${curtag}" ]
 			then
 				curtag="null"
 			fi
 			if [ ${curtag} == "${unfinished_tag}" ]
 			then
-			    torrentInfo=$(curl -s "${qb_web_url}/api/v2/torrents/info?filter=completed" --cookie "${cookie}")
-
 				doUpload "${torrentInfo}" ${i}
                 # 每次只上传一个数据，否则的话，可能会导致多线程的争用问题
                 break
