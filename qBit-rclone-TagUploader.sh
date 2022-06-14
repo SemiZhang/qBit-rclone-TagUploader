@@ -1,19 +1,18 @@
 #!/bin/sh
 
-qb_version="4.2.1" # 改：改为你的实际qb的版本号
-qb_username="用户名" # 改：该为你的qb登录用户名
-qb_password="密码" # 改：改为你qb登录的密码
-qb_web_url="http://127.0.0.1:2017" # 查：改为qb的登录地址，一般可以不改
-log_dir="/home/qbauto" # 改：改为你日志运行的路径
-rclone_dest="BG:" # 运行rclone config查看name字段即可；格式就是"XX:"
-from_dc_tag="/Upload" # 改：上传后的相对根目录，可为空
+qb_version="4.2.1" # 改：qBit的版本号
+qb_username="用户名" # 改：qBit WebUI的登录用户名
+qb_password="密码" # 改：qBit WebUI的登录密码
+qb_web_url="http://localhost:8080" # 改：qBit WebUI的登录地址
+log_dir="${HOME}/log/qBit-rclone-TagUploader" # 改：此脚本的日志保存的路径
+rclone_dest="BG:" # rclone挂载名称；运行rclone config查看name字段即可；格式为"XX:"
+from_dc_tag="/Upload" # 改：上传目录，可为空
 rclone_parallel="32" # rclone上传线程 默认4
 
-# 下面的也可以自定义，但是推荐不改动
-unfinished_tag="【待上传云端】" # 这个是手动设置某些tag，因为有用才上传
-uploading_tag="【正在上传】"
-finished_tag="【结束】"
-noupload_tag="无效-不上传"
+unfinished_tag="待上传" # 请自行添加此Tag至qBittorrent中
+uploading_tag="上传中"
+finished_tag="已上传"
+noupload_tag="上传失败"
 
 
 if [ ! -d ${log_dir} ]
