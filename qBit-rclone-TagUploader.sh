@@ -27,7 +27,7 @@ function qb_login(){
 	if [ ${version} -gt 404 ]
 	then
 		qb_v="1"
-		cookie=$(curl -i --header "Referer: ${qb_web_url}" --data "username=${qb_username}&password=${qb_password}" "${qb_web_url}/api/v2/auth/login" | grep -P -o 'SID=\S{32}')
+		cookie=$(curl -s -i --header "Referer: ${qb_web_url}" --data "username=${qb_username}&password=${qb_password}" "${qb_web_url}/api/v2/auth/login" | grep -P -o 'SID=\S{32}')
 		if [ -n ${cookie} ]
 		then
 			echo "[$(date '+%Y-%m-%d %H:%M:%S')] 登录成功！cookie:${cookie}" 
@@ -38,7 +38,7 @@ function qb_login(){
 	elif [[ ${version} -le 404 && ${version} -ge 320 ]]
 	then
 		qb_v="2"
-		cookie=$(curl -i --header "Referer: ${qb_web_url}" --data "username=${qb_username}&password=${qb_password}" "${qb_web_url}/login" | grep -P -o 'SID=\S{32}')
+		cookie=$(curl -s -i --header "Referer: ${qb_web_url}" --data "username=${qb_username}&password=${qb_password}" "${qb_web_url}/login" | grep -P -o 'SID=\S{32}')
 		if [ -n ${cookie} ]
 		then
 			echo "[$(date '+%Y-%m-%d %H:%M:%S')] 登录成功！cookie:${cookie}" 
