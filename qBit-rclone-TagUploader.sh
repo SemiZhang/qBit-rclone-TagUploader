@@ -113,7 +113,8 @@ function rclone_copy(){
         rclone_copy_cmd=$(rclone -v copy --transfers ${rclone_parallel} --log-file ${log_dir}/qbauto_copy.log "${torrent_path}" ${rclone_dest}/)
     elif [ ${type} == "dir" ]
     then
-		rclone_copy_cmd=$(rclone -v copy --transfers ${rclone_parallel} --log-file ${log_dir}/qbauto_copy.log "${torrent_path}"/ ${rclone_dest}/"${torrent_name}"/)
+		root_folder=$(echo $torrent_path | awk -F '/' '{print $NF}')
+		rclone_copy_cmd=$(rclone -v copy --transfers ${rclone_parallel} --log-file ${log_dir}/qbauto_copy.log "${torrent_path}"/ ${rclone_dest}/"${root_folder}"/)
     fi
 
     # tag = 已上传
