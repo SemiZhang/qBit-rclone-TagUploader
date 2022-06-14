@@ -48,7 +48,7 @@ function qb_login(){
 	elif [[ ${version} -ge 310 && ${version} -lt 320 ]]
 	then
 		qb_v="3"
-		echo "陈年老版本，请及时升级"
+		echo "qBittorrent版本过旧"
 		exit
 	else
 		qb_v="0"
@@ -169,10 +169,10 @@ function doUpload(){
     if [[ ${noLock} == "1" ]] # 厕所门能开
     then
         file_lock # 锁上厕所门
-        echo '执行上传没事的~~~';
         echo ${torrent_name}
         echo ${torrent_hash}
         echo ${torrent_path}
+        echo '开始上传';
         rclone_copy "${torrent_name}" "${torrent_hash}" "${torrent_path}"
     else
         echo '已有程序在上传，退出'
