@@ -143,8 +143,8 @@ function file_unlock(){
 function doUpload(){
     torrentInfo=$1
     i=$2
-    echo $2
-    echo ${i}
+    #echo $2
+    #echo ${i}
     
     # IFS保存，因为名字中可能出现多个空格
 	OLD_IFS=$IFS
