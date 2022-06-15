@@ -181,7 +181,7 @@ function qb_get_status(){
 	if [ ${qb_v} == "1" ]
 	then
 		torrentInfo=$(curl -s "${qb_web_url}/api/v2/torrents/info?filter=completed&tag=${unfinished_tag}" --cookie "${cookie}")
-		completed_torrents_num=$(echo ${torrentInfo} | jq '.[] | length' | wc -l)
+		completed_torrents_num=$(echo ${torrentInfo} | jq 'length')
 		echo "待上传标签任务数："${completed_torrents_num}
 		for((i=0;i<${completed_torrents_num};i++));
 		do
@@ -199,24 +199,23 @@ function qb_get_status(){
 		done
 	elif [ ${qb_v} == "2" ]
 	then
-		completed_torrents_num=$(curl -s "${qb_web_url}/query/torrents?filter=completed" --cookie "${cookie}" | jq '.[] | length' | wc -l)
+		torrentInfo=$(curl -s "${qb_web_url}/query/torrents?filter=completed&category=${unfinished_tag}" --cookie "${cookie}")
+		completed_torrents_num=$(echo ${torrentInfo} | jq 'length')
+		echo "待上传标签任务数："${completed_torrents_num}
 		for((i=0;i<${completed_torrents_num};i++));
 		do
-			curtag=$(curl -s "${qb_web_url}/query/torrents?filter=completed" --cookie "${cookie}" | jq ".[$i] | .category" | sed s/\"//g)
+			curtag=$(echo ${torrentInfo} | jq ".[$i] | .category" | sed s/\"//g)
 			if [ -z "${curtag}" ]
 			then
 				curtag="null"
 			fi
 			if [ ${curtag} == "${unfinished_tag}" ]
 			then
-				torrentInfo=$(curl -s "${qb_web_url}/query/torrents?filter=completed" --cookie "${cookie}")
-
                 doUpload "${torrentInfo}" ${i}
                 # 每次只上传一个数据，否则的话，可能会导致多线程的争用问题
                 break
 			fi
 		done
-		echo "啥事都不干";
 	else
 		echo "获取错误"
 		echo "qb_v=${qb_v}"
