@@ -1,6 +1,6 @@
 #!/bin/sh
 
-qb_version="4.2.1" # 改：qBit的版本号
+qb_version="4.2.1" # 改：qBit的版本号，共三位数字
 qb_username="用户名" # 改：qBit WebUI的登录用户名
 qb_password="密码" # 改：qBit WebUI的登录密码
 qb_web_url="http://localhost:8080" # 改：qBit WebUI的登录地址
@@ -52,6 +52,7 @@ function qb_login(){
 		exit
 	else
 		qb_v="0"
+		echo "qBittorrent版本不存在"
 		exit
 	fi
 }
