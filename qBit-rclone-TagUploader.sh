@@ -5,10 +5,10 @@ qb_username="用户名" # 改：qBit WebUI的登录用户名
 qb_password="密码" # 改：qBit WebUI的登录密码
 qb_web_url="http://localhost:8080" # 改：qBit WebUI的登录地址
 log_dir="${HOME}/log/qBit-rclone-TagUploader" # 改：此脚本的日志保存的路径
-rclone_dest="BG:/Upload" # rclone上传目录；挂载名称参考rclone config中的name字段；格式为"XX:FOLDER"
+rclone_dest=("BG:/Upload" "BG2:/") # rclone上传目录；挂载名称参考rclone config中的name字段；格式为"XX:FOLDER"
 rclone_parallel="32" # rclone上传线程 默认4
 
-unfinished_tag="待上传" # 请自行添加此Tag至qBittorrent中
+unfinished_tag=("待上传-BG" "待上传-BG2") # 请自行添加此Tag至qBittorrent中
 uploading_tag="上传中"
 finished_tag="已上传"
 noupload_tag="上传失败"
@@ -122,6 +122,7 @@ function rclone_copy(){
 	torrent_name=$1
 	torrent_hash=$2
 	torrent_path=$3
+	n=$4
 	
 	echo ${torrent_name}
 	echo ${torrent_hash}
@@ -146,19 +147,19 @@ function rclone_copy(){
 		echo "[$(date '+%Y-%m-%d %H:%M:%S')] 未知类型，取消上传"
 		echo "[$(date '+%Y-%m-%d %H:%M:%S')] 未知类型，取消上传" >> ${log_dir}/qb.log
 		# tag = 不上传
-		qb_change_hash_tag ${torrent_hash} ${unfinished_tag} ${noupload_tag}
+		qb_change_hash_tag ${torrent_hash} ${unfinished_tag[n]} ${noupload_tag}
 		return
 	fi
 	# tag = 上传中
-	qb_change_hash_tag ${torrent_hash} ${unfinished_tag} ${uploading_tag}
+	qb_change_hash_tag ${torrent_hash} ${unfinished_tag[n]} ${uploading_tag}
 	# 执行上传
 	if [ ${type} == "file" ]
 	then # 这里是rclone上传的方法
-		rclone_copy_cmd=$(rclone -v copy --transfers ${rclone_parallel} --log-file ${log_dir}/qbauto_copy.log "${torrent_path}" ${rclone_dest}/)
+		rclone_copy_cmd=$(rclone -v copy --transfers ${rclone_parallel} "${torrent_path}" ${rclone_dest[n]}/)
 	elif [ ${type} == "dir" ]
 	then
 		root_folder=$(echo $torrent_path | awk -F '/' '{print $NF}')
-		rclone_copy_cmd=$(rclone -v copy --transfers ${rclone_parallel} --log-file ${log_dir}/qbauto_copy.log "${torrent_path}"/ ${rclone_dest}/"${root_folder}"/)
+		rclone_copy_cmd=$(rclone -v copy --transfers ${rclone_parallel} "${torrent_path}"/ ${rclone_dest[n]}/"${root_folder}"/)
 	fi
 
 	# tag = 已上传
@@ -191,6 +192,7 @@ function file_unlock(){
 function doUpload(){
 	torrentInfo=$1
 	i=$2
+	n=$3
 	
 	# IFS保存，因为名字中可能出现多个空格
 	OLD_IFS=$IFS
@@ -209,7 +211,7 @@ function doUpload(){
 	then
 		file_lock # 锁上厕所门
 		echo '开始上传';
-		rclone_copy "${torrent_name}" "${torrent_hash}" "${torrent_path}"
+		rclone_copy "${torrent_name}" "${torrent_hash}" "${torrent_path}" $n
 	else
 		echo '已有程序在上传，退出'
 		return # 打不开门，换个时间来
@@ -222,22 +224,26 @@ function qb_get_status(){
 	qb_login
 	if [ ${qb_v} == "1" ]
 	then
-		torrentInfo=$(curl -s "${qb_web_url}/api/v2/torrents/info?filter=completed&tag=${unfinished_tag}" --cookie "${cookie}")
-		completed_torrents_num=$(echo ${torrentInfo} | jq 'length')
-		echo "待上传标签任务数："${completed_torrents_num}
-		for((i=0;i<${completed_torrents_num};i++));
+		for ((n=0;n<${#unfinished_tag[@]};n++))
 		do
-			curtag=$(echo ${torrentInfo} | jq ".[$i] | .tags" | sed s/\"//g | grep -P -o "${unfinished_tag}")
-			if [ -z "${curtag}" ]
-			then
-				curtag="null"
-			fi
-			if [ ${curtag} == "${unfinished_tag}" ]
-			then
-				doUpload "${torrentInfo}" ${i}
-				# 每次只上传一个数据，否则的话，可能会导致多线程的争用问题
-				break
-			fi
+			torrentInfo=$(curl -s "${qb_web_url}/api/v2/torrents/info?filter=completed&tag=${unfinished_tag[n]}" --cookie "${cookie}")
+			completed_torrents_num=$(echo ${torrentInfo} | jq 'length')
+			echo ${unfinished_tag[n]}":"${rclone_dest[n]}":任务数:"${completed_torrents_num}
+			for((i=0;i<${completed_torrents_num};i++));
+			do
+				curtag=$(echo ${torrentInfo} | jq ".[$i] | .tags" | sed s/\"//g | grep -P -o "${unfinished_tag[n]}")
+				if [ -z "${curtag}" ]
+				then
+					curtag="null"
+				fi
+
+				if [ ${curtag} == "${unfinished_tag[n]}" ]
+				then
+					doUpload "${torrentInfo}" ${i} ${n}
+					# 每次只上传一个数据，否则的话，可能会导致多线程的争用问题
+					break
+				fi
+			done
 		done
 	elif [ ${qb_v} == "2" ]
 	then
