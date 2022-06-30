@@ -127,25 +127,22 @@ function rclone_copy(){
 	echo ${torrent_name}
 	echo ${torrent_hash}
 	echo ${torrent_path}
-	#echo "${torrent_name}"  >> ${log_dir}/qb.log
-	#echo "${torrent_hash}"  >> ${log_dir}/qb.log
-	#echo "${torrent_path}"  >> ${log_dir}/qb.log
 
 	# tag = 待上传
 	# 这里执行上传程序
 	if [ -f "${torrent_path}" ]
 	then
-		echo "[$(date '+%Y-%m-%d %H:%M:%S')] 类型：文件"
-		echo "[$(date '+%Y-%m-%d %H:%M:%S')] 类型：文件" >> ${log_dir}/qb.log
+		echo "[$(date '+%Y-%m-%d %H:%M:%S')] 类型：文件 - ${root_folder}"
+		echo "[$(date '+%Y-%m-%d %H:%M:%S')] 类型：文件 - ${root_folder}" >> ${log_dir}/qb.log
 		type="file"
 	elif [ -d "${torrent_path}" ]
 	then
-		echo "[$(date '+%Y-%m-%d %H:%M:%S')] 类型：目录"
-		echo "[$(date '+%Y-%m-%d %H:%M:%S')] 类型：目录" >> ${log_dir}/qb.log
+		echo "[$(date '+%Y-%m-%d %H:%M:%S')] 类型：目录 - ${root_folder}"
+		echo "[$(date '+%Y-%m-%d %H:%M:%S')] 类型：目录 - ${root_folder}" >> ${log_dir}/qb.log
 		type="dir"
 	else
-		echo "[$(date '+%Y-%m-%d %H:%M:%S')] 未知类型，取消上传"
-		echo "[$(date '+%Y-%m-%d %H:%M:%S')] 未知类型，取消上传" >> ${log_dir}/qb.log
+		echo "[$(date '+%Y-%m-%d %H:%M:%S')] 未知类型，取消上传 - ${torrent_path}"
+		echo "[$(date '+%Y-%m-%d %H:%M:%S')] 未知类型，取消上传 - ${torrent_path}" >> ${log_dir}/qb.log
 		# tag = 不上传
 		qb_change_hash_tag ${torrent_hash} ${unfinished_tag[n]} ${noupload_tag}
 		return
@@ -170,7 +167,9 @@ function rclone_copy(){
 	use_seconds=$((end_seconds-start_seconds));
 	use_min=$((use_seconds/60));
 	use_sec=$((use_seconds%60));
-	echo "上传完成-耗时:${use_min}分${use_sec}秒"
+	echo "[$(date '+%Y-%m-%d %H:%M:%S')] 上传完成-用时:${use_min}分${use_sec}秒 - ${rclone_dest[n]} - ${root_folder}"
+	echo "[$(date '+%Y-%m-%d %H:%M:%S')] 上传完成-用时:${use_min}分${use_sec}秒 - ${rclone_dest[n]} - ${root_folder}" >> ${log_dir}/qb.log
+	echo -e >> ${log_dir}/qb.log
 }
 
 function file_lock(){
@@ -204,16 +203,16 @@ function doUpload(){
 	
 	IFS=$OLD_IFS
 	
-	echo "${torrent_name}";
 
 	can_go_lock
 	if [[ ${noLock} == "1" ]] # 厕所门能开
 	then
 		file_lock # 锁上厕所门
-		echo '开始上传';
+		echo "[$(date '+%Y-%m-%d %H:%M:%S')] 开始上传-${torrent_name}"
+		echo "[$(date '+%Y-%m-%d %H:%M:%S')] 开始上传-${torrent_name}" >> ${log_dir}/qb.log
 		rclone_copy "${torrent_name}" "${torrent_hash}" "${torrent_path}" $n
 	else
-		echo '已有程序在上传，退出'
+		echo "[$(date '+%Y-%m-%d %H:%M:%S')] 已有程序在上传，退出"
 		return # 打不开门，换个时间来
 	fi
 	file_unlock # 打开厕所门，出去
