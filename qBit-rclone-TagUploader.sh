@@ -62,10 +62,53 @@ function qb_change_hash_tag(){
 	file_hash=$1
 	fromTag=$2
 	toTag=$3
+	res_remove="0"
+	res_add="0"
 	if [ ${qb_v} == "1" ]
 	then # 这里是添加某些tag的方法
-		curl -s -X POST -d "hashes=${file_hash}&tags=${fromTag}" "${qb_web_url}/api/v2/torrents/removeTags" --cookie "${cookie}"
-		curl -s -X POST -d "hashes=${file_hash}&tags=${toTag}" "${qb_web_url}/api/v2/torrents/addTags" --cookie "${cookie}"
+		trys=0
+		until [[ $trys -gt 3 ]]
+		do
+			res_remove=$(curl -s -w "%{http_code}" -X POST -d "hashes=${file_hash}&tags=${fromTag}" "${qb_web_url}/api/v2/torrents/removeTags" --cookie "${cookie}")
+			if [ $res_remove != "200" ]
+			then
+				qb_login
+				res_remove=$(curl -s -w "%{http_code}" -X POST -d "hashes=${file_hash}&tags=${fromTag}" "${qb_web_url}/api/v2/torrents/removeTags" --cookie "${cookie}")
+				let trys++
+				if [[ ${trys} -gt 3 ]]
+				then
+					echo "![$(date '+%Y-%m-%d %H:%M:%S')] Tag删除失败'${fromTag}' - ${res_remove} - ${file_hash}"
+					echo "![$(date '+%Y-%m-%d %H:%M:%S')] Tag删除失败'${fromTag}' - ${res_remove} - ${file_hash}" >> ${log_dir}/qb.log
+				fi
+			else
+				break
+			fi
+		done
+		
+		trys=0
+		until [[ $trys -gt 3 ]]
+		do
+			res_add=$(curl -s -w "%{http_code}" -X POST -d "hashes=${file_hash}&tags=${toTag}" "${qb_web_url}/api/v2/torrents/addTags" --cookie "${cookie}")
+			if [ $res_add != "200" ]
+			then
+				qb_login
+				res_add=$(curl -s -w "%{http_code}" -X POST -d "hashes=${file_hash}&tags=${toTag}" "${qb_web_url}/api/v2/torrents/addTags" --cookie "${cookie}")
+				let trys++
+				if [[ ${trys} -gt 3 ]]
+				then
+					echo "![$(date '+%Y-%m-%d %H:%M:%S')] Tag添加失败'${toTag}' - ${res_add} - ${file_hash}"
+					echo "![$(date '+%Y-%m-%d %H:%M:%S')] Tag添加失败'${toTag}' - ${res_add} - ${file_hash}" >> ${log_dir}/qb.log
+				fi
+			else
+				break
+			fi
+		done
+		
+		if [ ${res_remove} == ${res_add} ] && [ ${res_add} == "200" ]
+		then
+			echo "[$(date '+%Y-%m-%d %H:%M:%S')] Tag已从'${fromTag}'改为'${toTag}' - ${file_hash}"
+			echo "[$(date '+%Y-%m-%d %H:%M:%S')] Tag已从'${fromTag}'改为'${toTag}' - ${file_hash}" >> ${log_dir}/qb.log
+		fi
 	elif [ ${qb_v} == "2" ]
 	then
 		curl -s -X POST -d "hashes=${file_hash}&category=${fromTag}" "${qb_web_url}/command/removeCategories" --cookie ${cookie}
