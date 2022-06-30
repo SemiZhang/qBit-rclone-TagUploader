@@ -59,121 +59,119 @@ function qb_login(){
 
 # 先移除指定tag，后增加自己的tag
 function qb_change_hash_tag(){
-    file_hash=$1
-    fromTag=$2
-    toTag=$3
-    if [ ${qb_v} == "1" ]
-    then # 这里是添加某些tag的方法
+	file_hash=$1
+	fromTag=$2
+	toTag=$3
+	if [ ${qb_v} == "1" ]
+	then # 这里是添加某些tag的方法
 		curl -s -X POST -d "hashes=${file_hash}&tags=${fromTag}" "${qb_web_url}/api/v2/torrents/removeTags" --cookie "${cookie}"
-        curl -s -X POST -d "hashes=${file_hash}&tags=${toTag}" "${qb_web_url}/api/v2/torrents/addTags" --cookie "${cookie}"
-    elif [ ${qb_v} == "2" ]
-    then
-        curl -s -X POST -d "hashes=${file_hash}&category=${fromTag}" "${qb_web_url}/command/removeCategories" --cookie ${cookie}
-        curl -s -X POST -d "hashes=${file_hash}&category=${toTag}" "${qb_web_url}/command/setCategory" --cookie ${cookie}
-    else
-        echo "qb_v=${qb_v}"
-    fi
+		curl -s -X POST -d "hashes=${file_hash}&tags=${toTag}" "${qb_web_url}/api/v2/torrents/addTags" --cookie "${cookie}"
+	elif [ ${qb_v} == "2" ]
+	then
+		curl -s -X POST -d "hashes=${file_hash}&category=${fromTag}" "${qb_web_url}/command/removeCategories" --cookie ${cookie}
+		curl -s -X POST -d "hashes=${file_hash}&category=${toTag}" "${qb_web_url}/command/setCategory" --cookie ${cookie}
+	else
+		echo "qb_v=${qb_v}"
+	fi
 }
 
 function rclone_copy(){
-    torrent_name=$1
-    torrent_hash=$2
-    torrent_path=$3
-    
+	torrent_name=$1
+	torrent_hash=$2
+	torrent_path=$3
+	
 	echo ${torrent_name}
 	echo ${torrent_hash}
 	echo ${torrent_path}
-    echo "${torrent_name}"  >> ${log_dir}/qb.log
-    echo "${torrent_hash}"  >> ${log_dir}/qb.log
-    echo "${torrent_path}"  >> ${log_dir}/qb.log
+	#echo "${torrent_name}"  >> ${log_dir}/qb.log
+	#echo "${torrent_hash}"  >> ${log_dir}/qb.log
+	#echo "${torrent_path}"  >> ${log_dir}/qb.log
 
-    # tag = 待上传
-    # 这里执行上传程序
-    if [ -f "${torrent_path}" ]
-    then
-       echo "[$(date '+%Y-%m-%d %H:%M:%S')] 类型：文件"
-       echo "[$(date '+%Y-%m-%d %H:%M:%S')] 类型：文件" >> ${log_dir}/qb.log
-       type="file"
-    elif [ -d "${torrent_path}" ]
-    then
-       echo "[$(date '+%Y-%m-%d %H:%M:%S')] 类型：目录"
-       echo "[$(date '+%Y-%m-%d %H:%M:%S')] 类型：目录" >> ${log_dir}/qb.log
-       type="dir"
-    else
-       echo "[$(date '+%Y-%m-%d %H:%M:%S')] 未知类型，取消上传"
-       echo "[$(date '+%Y-%m-%d %H:%M:%S')] 未知类型，取消上传" >> ${log_dir}/qb.log
-       # tag = 不上传
-       qb_change_hash_tag ${torrent_hash} ${unfinished_tag} ${noupload_tag}
-       return
-    fi
-    # tag = 上传中
-    qb_change_hash_tag ${torrent_hash} ${unfinished_tag} ${uploading_tag}
-    # 执行上传
-    if [ ${type} == "file" ]
-    then # 这里是rclone上传的方法
-        rclone_copy_cmd=$(rclone -v copy --transfers ${rclone_parallel} --log-file ${log_dir}/qbauto_copy.log "${torrent_path}" ${rclone_dest}/)
-    elif [ ${type} == "dir" ]
-    then
+	# tag = 待上传
+	# 这里执行上传程序
+	if [ -f "${torrent_path}" ]
+	then
+		echo "[$(date '+%Y-%m-%d %H:%M:%S')] 类型：文件"
+		echo "[$(date '+%Y-%m-%d %H:%M:%S')] 类型：文件" >> ${log_dir}/qb.log
+		type="file"
+	elif [ -d "${torrent_path}" ]
+	then
+		echo "[$(date '+%Y-%m-%d %H:%M:%S')] 类型：目录"
+		echo "[$(date '+%Y-%m-%d %H:%M:%S')] 类型：目录" >> ${log_dir}/qb.log
+		type="dir"
+	else
+		echo "[$(date '+%Y-%m-%d %H:%M:%S')] 未知类型，取消上传"
+		echo "[$(date '+%Y-%m-%d %H:%M:%S')] 未知类型，取消上传" >> ${log_dir}/qb.log
+		# tag = 不上传
+		qb_change_hash_tag ${torrent_hash} ${unfinished_tag} ${noupload_tag}
+		return
+	fi
+	# tag = 上传中
+	qb_change_hash_tag ${torrent_hash} ${unfinished_tag} ${uploading_tag}
+	# 执行上传
+	if [ ${type} == "file" ]
+	then # 这里是rclone上传的方法
+		rclone_copy_cmd=$(rclone -v copy --transfers ${rclone_parallel} --log-file ${log_dir}/qbauto_copy.log "${torrent_path}" ${rclone_dest}/)
+	elif [ ${type} == "dir" ]
+	then
 		root_folder=$(echo $torrent_path | awk -F '/' '{print $NF}')
 		rclone_copy_cmd=$(rclone -v copy --transfers ${rclone_parallel} --log-file ${log_dir}/qbauto_copy.log "${torrent_path}"/ ${rclone_dest}/"${root_folder}"/)
-    fi
+	fi
 
-    # tag = 已上传
-    qb_change_hash_tag ${torrent_hash} ${uploading_tag} ${finished_tag}
+	# tag = 已上传
+	qb_change_hash_tag ${torrent_hash} ${uploading_tag} ${finished_tag}
 
-    endPat=`date +'%Y-%m-%d %H:%M:%S'`
-    end_seconds=$(date --date="$endPat" +%s);
-    use_seconds=$((end_seconds-start_seconds));
-    use_min=$((use_seconds/60));
-    use_sec=$((use_seconds%60));
-    echo "上传完成-耗时:${use_min}分${use_sec}秒"
+	endPat=`date +'%Y-%m-%d %H:%M:%S'`
+	end_seconds=$(date --date="$endPat" +%s);
+	use_seconds=$((end_seconds-start_seconds));
+	use_min=$((use_seconds/60));
+	use_sec=$((use_seconds%60));
+	echo "上传完成-耗时:${use_min}分${use_sec}秒"
 }
 
 function file_lock(){
-    $(touch qbup.lock)
+	$(touch qbup.lock)
 }
 function can_go_lock(){
-    lockStatus=$(ls | grep qbup.lock)
-    if [ -z "${lockStatus}" ]
-    then
-        noLock="1"
-        return
-    fi
-    noLock="0"
+	lockStatus=$(ls | grep qbup.lock)
+	if [ -z "${lockStatus}" ]
+	then
+		noLock="1"
+		return
+	fi
+	noLock="0"
 }
 function file_unlock(){
-    $(rm -rf qbup.lock)
+	$(rm -rf qbup.lock)
 }
 
 function doUpload(){
-    torrentInfo=$1
-    i=$2
-    #echo $2
-    #echo ${i}
-    
-    # IFS保存，因为名字中可能出现多个空格
+	torrentInfo=$1
+	i=$2
+	
+	# IFS保存，因为名字中可能出现多个空格
 	OLD_IFS=$IFS
 	IFS="\n"
 	
-    torrent_name=$(echo "${torrentInfo}" | jq ".[$i] | .name" | sed s/\"//g)
-    torrent_hash=$(echo "${torrentInfo}" | jq ".[$i] | .hash" | sed s/\"//g)
+	torrent_name=$(echo "${torrentInfo}" | jq ".[$i] | .name" | sed s/\"//g)
+	torrent_hash=$(echo "${torrentInfo}" | jq ".[$i] | .hash" | sed s/\"//g)
 	torrent_path=$(echo "${torrentInfo}" | jq ".[$i] | .content_path" | sed s/\"//g)
-    
-    IFS=$OLD_IFS
-    
-    echo "${torrent_name}";
+	
+	IFS=$OLD_IFS
+	
+	echo "${torrent_name}";
 
-    can_go_lock
-    if [[ ${noLock} == "1" ]] # 厕所门能开
-    then
-        file_lock # 锁上厕所门
-        echo '开始上传';
-        rclone_copy "${torrent_name}" "${torrent_hash}" "${torrent_path}"
-    else
-        echo '已有程序在上传，退出'
-        return # 打不开门，换个时间来
-    fi
-    file_unlock # 打开厕所门，出去
+	can_go_lock
+	if [[ ${noLock} == "1" ]] # 厕所门能开
+	then
+		file_lock # 锁上厕所门
+		echo '开始上传';
+		rclone_copy "${torrent_name}" "${torrent_hash}" "${torrent_path}"
+	else
+		echo '已有程序在上传，退出'
+		return # 打不开门，换个时间来
+	fi
+	file_unlock # 打开厕所门，出去
 }
 
 # 每次只查询一条数据，！！上传一条数据！！
@@ -194,8 +192,8 @@ function qb_get_status(){
 			if [ ${curtag} == "${unfinished_tag}" ]
 			then
 				doUpload "${torrentInfo}" ${i}
-                # 每次只上传一个数据，否则的话，可能会导致多线程的争用问题
-                break
+				# 每次只上传一个数据，否则的话，可能会导致多线程的争用问题
+				break
 			fi
 		done
 	elif [ ${qb_v} == "2" ]
@@ -212,9 +210,9 @@ function qb_get_status(){
 			fi
 			if [ ${curtag} == "${unfinished_tag}" ]
 			then
-                doUpload "${torrentInfo}" ${i}
-                # 每次只上传一个数据，否则的话，可能会导致多线程的争用问题
-                break
+				doUpload "${torrentInfo}" ${i}
+				# 每次只上传一个数据，否则的话，可能会导致多线程的争用问题
+				break
 			fi
 		done
 	else
