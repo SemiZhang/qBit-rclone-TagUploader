@@ -123,10 +123,6 @@ function rclone_copy(){
 	torrent_hash=$2
 	torrent_path=$3
 	n=$4
-	
-	echo ${torrent_name}
-	echo ${torrent_hash}
-	echo ${torrent_path}
 
 	# tag = 待上传
 	# 这里执行上传程序
