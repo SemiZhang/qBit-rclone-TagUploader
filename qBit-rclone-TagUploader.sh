@@ -152,11 +152,10 @@ function rclone_copy(){
 	# 执行上传
 	if [ ${type} == "file" ]
 	then # 这里是rclone上传的方法
-		rclone_copy_cmd=$(rclone -v copy --transfers ${rclone_parallel} "${torrent_path}" ${rclone_dest[n]}/)
+		rclone_copy_cmd=$(rclone -v copy --transfers ${rclone_parallel} "${torrent_path}" "${rclone_dest[n]}"/)
 	elif [ ${type} == "dir" ]
 	then
-		root_folder=$(echo $torrent_path | awk -F '/' '{print $NF}')
-		rclone_copy_cmd=$(rclone -v copy --transfers ${rclone_parallel} "${torrent_path}"/ ${rclone_dest[n]}/"${root_folder}"/)
+		rclone_copy_cmd=$(rclone -v copy --transfers ${rclone_parallel} "${torrent_path}"/ "${rclone_dest[n]}"/"${root_folder}"/)
 	fi
 
 	# tag = 已上传
