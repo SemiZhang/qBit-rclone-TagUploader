@@ -5,10 +5,11 @@ qb_username="用户名" # 改：qBit WebUI的登录用户名
 qb_password="密码" # 改：qBit WebUI的登录密码
 qb_web_url="http://localhost:8080" # 改：qBit WebUI的登录地址
 log_dir="${HOME}/log/qBit-rclone-TagUploader" # 改：此脚本的日志保存的路径
+
+unfinished_tag=("待上传-BG" "待上传-BG2") # 请自行添加此Tag至qBittorrent中
 rclone_dest=("BG:/Upload" "BG2:/") # rclone上传目录；挂载名称参考rclone config中的name字段；格式为"XX:FOLDER"
 rclone_parallel="32" # rclone上传线程 默认4
 
-unfinished_tag=("待上传-BG" "待上传-BG2") # 请自行添加此Tag至qBittorrent中
 uploading_tag="上传中"
 finished_tag="已上传"
 noupload_tag="上传失败"
@@ -51,7 +52,6 @@ function qb_login(){
 		exit
 	else
 		qb_v="0"
-		echo "qBittorrent版本不存在"
 		exit
 	fi
 }
@@ -198,7 +198,6 @@ function doUpload(){
 	torrent_path=$(echo "${torrentInfo}" | jq ".[$i] | .content_path" | sed s/\"//g)
 	
 	IFS=$OLD_IFS
-	
 
 	can_go_lock
 	if [[ ${noLock} == "1" ]] # 厕所门能开
@@ -265,4 +264,4 @@ function qb_get_status(){
 	fi
 }
 
-qb_get_status
+qb_get_statusqb_get_status
