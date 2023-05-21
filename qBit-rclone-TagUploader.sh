@@ -13,15 +13,14 @@ uploading_tag="上传中"
 finished_tag="已上传"
 noupload_tag="上传失败"
 
+version=$(echo ${qb_version} | grep -P -o "([0-9]\.){2}[0-9]" | sed s/\\.//g)
+timePat=`date +'%Y-%m-%d %H:%M:%S'`  # 时间计算方案
+
 
 if [ ! -d ${log_dir} ]
 then
 	mkdir -p ${log_dir}
 fi
-
-version=$(echo ${qb_version} | grep -P -o "([0-9]\.){2}[0-9]" | sed s/\\.//g)
-startPat=`date +'%Y-%m-%d %H:%M:%S'`  # 时间计算方案
-start_seconds=$(date --date="$startPat" +%s);
 
 function qb_login(){
 	if [ ${version} -gt 404 ]
@@ -146,6 +145,8 @@ function rclone_copy(){
 	# tag = 上传中
 	qb_change_hash_tag ${torrent_hash} ${unfinished_tag[n]} ${uploading_tag}
 	# 执行上传
+	start_seconds=$(date --date="$timePat" +%s);
+	
 	if [ ${type} == "file" ]
 	then # 这里是rclone上传的方法
 		rclone_copy_cmd=$(rclone -v copy --transfers ${rclone_parallel} "${torrent_path}" "${rclone_dest[n]}"/)
@@ -157,8 +158,8 @@ function rclone_copy(){
 	# tag = 已上传
 	qb_change_hash_tag ${torrent_hash} ${uploading_tag} ${finished_tag}
 
-	endPat=`date +'%Y-%m-%d %H:%M:%S'`
-	end_seconds=$(date --date="$endPat" +%s);
+	
+	end_seconds=$(date --date="$timePat" +%s);
 	use_seconds=$((end_seconds-start_seconds));
 	use_min=$((use_seconds/60));
 	use_sec=$((use_seconds%60));
