@@ -212,7 +212,7 @@ function doUpload(){
 		rclone_copy "${torrent_name}" "${torrent_hash}" "${torrent_path}" $n
 	else
 		echo "[$(date '+%Y-%m-%d %H:%M:%S')] 已有程序在上传，退出"
-		return # 打不开门，换个时间来
+		exit # 打不开门，换个时间来
 	fi
 	file_unlock # 打开厕所门，出去
 }
