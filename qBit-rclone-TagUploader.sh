@@ -56,64 +56,86 @@ function qb_login(){
 	fi
 }
 
-# 先移除指定tag，后增加自己的tag
-function qb_change_hash_tag(){
+function qb_remove_tag(){
 	file_hash=$1
 	fromTag=$2
-	toTag=$3
 	res_remove="0"
-	res_add="0"
-	if [ ${qb_v} == "1" ]
-	then # 这里是添加某些tag的方法
-		trys=0
-		until [[ $trys -gt 3 ]]
-		do
-			res_remove=$(curl -s -w "%{http_code}" -X POST -d "hashes=${file_hash}&tags=${fromTag}" "${qb_web_url}/api/v2/torrents/removeTags" --cookie "${cookie}")
-			if [ $res_remove != "200" ]
-			then
-				qb_login
-				res_remove=$(curl -s -w "%{http_code}" -X POST -d "hashes=${file_hash}&tags=${fromTag}" "${qb_web_url}/api/v2/torrents/removeTags" --cookie "${cookie}")
-				let trys++
-				if [[ ${trys} -gt 3 ]]
-				then
-					echo "![$(date '+%Y-%m-%d %H:%M:%S')] Tag删除失败'${fromTag}' - ${res_remove} - ${file_hash}"
-					echo "![$(date '+%Y-%m-%d %H:%M:%S')] Tag删除失败'${fromTag}' - ${res_remove} - ${file_hash}" >> ${log_dir}/qb.log
-				fi
-			else
-				break
-			fi
-		done
-		
-		trys=0
-		until [[ $trys -gt 3 ]]
-		do
-			res_add=$(curl -s -w "%{http_code}" -X POST -d "hashes=${file_hash}&tags=${toTag}" "${qb_web_url}/api/v2/torrents/addTags" --cookie "${cookie}")
-			if [ $res_add != "200" ]
-			then
-				qb_login
-				res_add=$(curl -s -w "%{http_code}" -X POST -d "hashes=${file_hash}&tags=${toTag}" "${qb_web_url}/api/v2/torrents/addTags" --cookie "${cookie}")
-				let trys++
-				if [[ ${trys} -gt 3 ]]
-				then
-					echo "![$(date '+%Y-%m-%d %H:%M:%S')] Tag添加失败'${toTag}' - ${res_add} - ${file_hash}"
-					echo "![$(date '+%Y-%m-%d %H:%M:%S')] Tag添加失败'${toTag}' - ${res_add} - ${file_hash}" >> ${log_dir}/qb.log
-				fi
-			else
-				break
-			fi
-		done
-		
-		if [ ${res_remove} == ${res_add} ] && [ ${res_add} == "200" ]
+	
+	# 这里是添加某些tag的方法
+	trys=0
+	until [[ $try -gt 3 ]]
+	do
+		if [ $res_remove != "200" ]
 		then
-			echo "[$(date '+%Y-%m-%d %H:%M:%S')] Tag已从'${fromTag}'改为'${toTag}' - ${file_hash}"
-			echo "[$(date '+%Y-%m-%d %H:%M:%S')] Tag已从'${fromTag}'改为'${toTag}' - ${file_hash}" >> ${log_dir}/qb.log
+			res_remove=$(curl -sL -w "%{http_code}" -X POST -d "hashes=${file_hash}&tags=${fromTag}" "${qb_web_url}/api/v2/torrents/removeTags" --cookie "${cookie}")
+			let trys++
+			if [[ ${trys} -gt 1 ]]
+			then
+				qb_login
+			fi
+			if [[ ${trys} -gt 3 ]]
+			then
+				echo "![$(date '+%Y-%m-%d %H:%M:%S')] Tag删除失败'${fromTag}' - ${file_hash}"
+				echo "![$(date '+%Y-%m-%d %H:%M:%S')] Tag删除失败'${fromTag}' - ${file_hash}" >> ${log_dir}/qb.log
+			fi
+		else
+			break
 		fi
+	done
+	
+	echo $res_remove
+	
+	if [[ ${res_remove} == "200" ]]
+	then
+		echo "[$(date '+%Y-%m-%d %H:%M:%S')] Tag已删除'${fromTag}' - ${file_hash}"
+	fi
+}
+
+function qb_add_tag(){
+	file_hash=$1
+	toTag=$2
+	res_add="0"
+	
+	# 这里是添加某些tag的方法
+	trys=0
+	until [[ $try -gt 3 ]]
+	do
+		if [ $res_add != "200" ]
+		then
+			res_add=$(curl -sL -w "%{http_code}" -X POST -d "hashes=${file_hash}&tags=${toTag}" "${qb_web_url}/api/v2/torrents/addTags" --cookie "${cookie}")
+			let trys++
+			if [[ ${trys} -gt 1 ]]
+			then
+				qb_login
+			fi
+			if [[ ${trys} -gt 3 ]]
+			then
+				echo "![$(date '+%Y-%m-%d %H:%M:%S')] Tag添加失败'${toTag}' - ${file_hash}"
+				echo "![$(date '+%Y-%m-%d %H:%M:%S')] Tag添加失败'${toTag}' - ${file_hash}" >> ${log_dir}/qb.log
+			fi
+		else
+			break
+		fi
+	done
+	
+	echo $res_add
+	
+	if [[ ${res_add} == "200" ]]
+	then
+		echo "[$(date '+%Y-%m-%d %H:%M:%S')] Tag已添加'${toTag}' - ${file_hash}"
+	fi
+}
+
+# 先移除指定tag，后增加自己的tag
+function qb_set_category(){
+	file_hash=$1
+	toTag=$2
+	if [ ${qb_v} == "1" ]
+	then
+		curl -s -X POST -d "hashes=${file_hash}&category=${toTag}" "${qb_web_url}/api/v2/torrents/setCategory" --cookie ${cookie}
 	elif [ ${qb_v} == "2" ]
 	then
-		curl -s -X POST -d "hashes=${file_hash}&category=${fromTag}" "${qb_web_url}/command/removeCategories" --cookie ${cookie}
 		curl -s -X POST -d "hashes=${file_hash}&category=${toTag}" "${qb_web_url}/command/setCategory" --cookie ${cookie}
-	else
-		echo "qb_v=${qb_v}"
 	fi
 }
 
@@ -123,48 +145,95 @@ function rclone_copy(){
 	torrent_path=$3
 	n=$4
 
-	# tag = 待上传
 	# 这里执行上传程序
 	if [ -f "${torrent_path}" ]
 	then
+		root_folder=$(echo $torrent_path | awk -F '/' '{print $NF}')
 		echo "[$(date '+%Y-%m-%d %H:%M:%S')] 类型：文件 - ${root_folder}"
 		echo "[$(date '+%Y-%m-%d %H:%M:%S')] 类型：文件 - ${root_folder}" >> ${log_dir}/qb.log
 		type="file"
+		
 	elif [ -d "${torrent_path}" ]
 	then
+		root_folder=$(echo $torrent_path | awk -F '/' '{print $NF}')
 		echo "[$(date '+%Y-%m-%d %H:%M:%S')] 类型：目录 - ${root_folder}"
 		echo "[$(date '+%Y-%m-%d %H:%M:%S')] 类型：目录 - ${root_folder}" >> ${log_dir}/qb.log
 		type="dir"
+		
 	else
 		echo "[$(date '+%Y-%m-%d %H:%M:%S')] 未知类型，取消上传 - ${torrent_path}"
 		echo "[$(date '+%Y-%m-%d %H:%M:%S')] 未知类型，取消上传 - ${torrent_path}" >> ${log_dir}/qb.log
+		
 		# tag = 不上传
-		qb_change_hash_tag ${torrent_hash} ${unfinished_tag[n]} ${noupload_tag}
+		if [ ${qb_v} == "1" ]
+		then
+			qb_add_tag ${torrent_hash} ${noupload_tag}
+		elif [ ${qb_v} == "2" ]
+		then
+			qb_set_category ${torrent_hash} ${noupload_tag}
+		fi
+		
 		return
 	fi
+	
 	# tag = 上传中
-	qb_change_hash_tag ${torrent_hash} ${unfinished_tag[n]} ${uploading_tag}
+	if [ ${qb_v} == "1" ]
+	then
+		qb_add_tag ${torrent_hash} ${uploading_tag}
+	elif [ ${qb_v} == "2" ]
+	then
+		qb_set_category ${torrent_hash} ${uploading_tag}
+	fi
+	
+	
+	
 	# 执行上传
 	start_seconds=$(date --date="$timePat" +%s);
 	
 	if [ ${type} == "file" ]
 	then # 这里是rclone上传的方法
 		rclone_copy_cmd=$(rclone -v copy --transfers ${rclone_parallel} "${torrent_path}" "${rclone_dest[n]}"/)
+		status=$?
 	elif [ ${type} == "dir" ]
 	then
 		rclone_copy_cmd=$(rclone -v copy --transfers ${rclone_parallel} "${torrent_path}"/ "${rclone_dest[n]}"/"${root_folder}"/)
+		status=$?
 	fi
-
-	# tag = 已上传
-	qb_change_hash_tag ${torrent_hash} ${uploading_tag} ${finished_tag}
-
 	
 	end_seconds=$(date --date="$timePat" +%s);
 	use_seconds=$((end_seconds-start_seconds));
 	use_min=$((use_seconds/60));
 	use_sec=$((use_seconds%60));
-	echo "[$(date '+%Y-%m-%d %H:%M:%S')] 上传完成-用时:${use_min}分${use_sec}秒 - ${rclone_dest[n]} - ${root_folder}"
-	echo "[$(date '+%Y-%m-%d %H:%M:%S')] 上传完成-用时:${use_min}分${use_sec}秒 - ${rclone_dest[n]} - ${root_folder}" >> ${log_dir}/qb.log
+	
+	if [[ status -eq 0 ]]
+	then
+		# tag = 已上传
+		if [ ${qb_v} == "1" ]
+		then
+			qb_add_tag ${torrent_hash} ${finished_tag}
+			qb_remove_tag ${torrent_hash} ${uploading_tag}
+		elif [ ${qb_v} == "2" ]
+		then
+			qb_set_category ${torrent_hash} ${finished_tag}
+		fi
+		
+		echo "[$(date '+%Y-%m-%d %H:%M:%S')] 上传完成-用时:${use_min}分${use_sec}秒 - ${rclone_dest[n]} - ${root_folder}"
+		echo "[$(date '+%Y-%m-%d %H:%M:%S')] 上传完成-用时:${use_min}分${use_sec}秒 - ${rclone_dest[n]} - ${root_folder}" >> ${log_dir}/qb.log
+	else
+		# tag = 不上传
+		if [ ${qb_v} == "1" ]
+		then
+			qb_add_tag ${torrent_hash} ${noupload_tag}
+		elif [ ${qb_v} == "2" ]
+		then
+			qb_set_category ${torrent_hash} ${noupload_tag}
+		fi
+		
+		echo "[$(date '+%Y-%m-%d %H:%M:%S')] 错误-用时:${use_min}分${use_sec}秒"
+		echo "[$(date '+%Y-%m-%d %H:%M:%S')] 错误-用时:${use_min}分${use_sec}秒}" >> ${log_dir}/qb.log
+	fi
+
+	
 	echo -e >> ${log_dir}/qb.log
 }
 
@@ -220,19 +289,18 @@ function qb_get_status(){
 	then
 		for ((n=0;n<${#unfinished_tag[@]};n++))
 		do
-			torrentInfo=$(curl -s "${qb_web_url}/api/v2/torrents/info?filter=completed&tag=${unfinished_tag[n]}" --cookie "${cookie}")
+			torrentInfo=$(curl -s "${qb_web_url}/api/v2/torrents/info?filter=completed&category=${unfinished_tag[n]}&sort=added_on" --cookie "${cookie}")
 			completed_torrents_num=$(echo ${torrentInfo} | jq 'length')
 			echo ${unfinished_tag[n]}":"${rclone_dest[n]}":任务数:"${completed_torrents_num}
 			for((i=0;i<${completed_torrents_num};i++));
 			do
-				curtag=$(echo ${torrentInfo} | jq ".[$i] | .tags" | sed s/\"//g | grep -P -o "${unfinished_tag[n]}")
-				if [ -z "${curtag}" ]
+				tags=$(echo ${torrentInfo} | jq ".[$i] | .tags")
+				if [[ $tags =~ $uploading_tag ]] || [[ $tags =~ $finished_tag ]] || [[ $tags =~ $noupload_tag ]]
 				then
-					curtag="null"
-				fi
-
-				if [ ${curtag} == "${unfinished_tag[n]}" ]
-				then
+					echo "包含tag"
+					continue
+				else
+					echo "准备上传：$(echo "${torrentInfo}" | jq ".[$i] | .name" | sed s/\"//g)"
 					doUpload "${torrentInfo}" ${i} ${n}
 					# 每次只上传一个数据，否则的话，可能会导致多线程的争用问题
 					break
@@ -241,7 +309,7 @@ function qb_get_status(){
 		done
 	elif [ ${qb_v} == "2" ]
 	then
-		torrentInfo=$(curl -s "${qb_web_url}/query/torrents?filter=completed&category=${unfinished_tag}" --cookie "${cookie}")
+		torrentInfo=$(curl -s "${qb_web_url}/query/torrents?filter=completed&tag=${unfinished_tag}" --cookie "${cookie}")
 		completed_torrents_num=$(echo ${torrentInfo} | jq 'length')
 		echo "待上传标签任务数："${completed_torrents_num}
 		for((i=0;i<${completed_torrents_num};i++));
@@ -251,6 +319,7 @@ function qb_get_status(){
 			then
 				curtag="null"
 			fi
+
 			if [ ${curtag} == "${unfinished_tag}" ]
 			then
 				doUpload "${torrentInfo}" ${i}
@@ -264,4 +333,4 @@ function qb_get_status(){
 	fi
 }
 
-qb_get_statusqb_get_status
+qb_get_status
