@@ -14,13 +14,17 @@
 7. 将 qBit-rclone-TagUploader.sh 添加到计划任务中，例如 crontab。
 
 ## 疑难：
-**Log中显示上传成功，但实际并没有，并且用时仅为不到10秒**
-由于 rclone 始终以 exit 1 结束进程，因此难以判断实际上传情况。 请排查以下问题：
-检查 rclone 与目标网盘是否能够正确建立连接（使用 rclone lsd 查看网盘目录，无报错则没问题）
-确保 rclone_dest 中填写了正确的 rclone 配置路径
-手动运行 qBit-rclone-TagUploader.sh 查看报错信息
+**1. Log中显示上传成功，但实际并没有，并且用时仅为不到10秒**
 
-**在上传中途异常退出后，任务始终为上传中 / 已完成的任务不开始上传了**
+由于 rclone 始终以 exit 1 结束进程，因此难以判断实际上传情况。 请排查以下问题：
+
+- 检查 rclone 与目标网盘是否能够正确建立连接（使用 rclone lsd 查看网盘目录，无报错则没问题）
+- 确保 rclone_dest 中填写了正确的 rclone 配置路径
+- 手动运行 qBit-rclone-TagUploader.sh 查看报错信息
+
+
+**2. 在上传中途异常退出后，任务始终为上传中 / 已完成的任务不开始上传了**
+
 手动运行 qBit-rclone-TagUploader.sh，若报错显示：“已有程序在上传，退出”，执行以下步骤
 1. 清除 qbittorrent 中的 “上传中” Tag
 2. 删除用户根目录下的 qbup.lock 文件
